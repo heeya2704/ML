@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flipkart Review Sentiment Predictor</title>
+    <!-- Modern Styling -->
+    <style>
+        :root {
+            --primary: #2874f0;
+            --primary-hover: #1259c7;
+            --success: #388e3c;
+            --danger: #d32f2f;
+            --bg: #f1f3f6;
+            --card-bg: #ffffff;
+            --text: #212121;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 580px;
+            padding: 36px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h2 {
+            color: var(--primary);
+            margin: 0 0 8px 0;
+            font-size: 1.6rem;
+        }
+
+        .header p {
+            color: #666;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .result-card {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .result-positive {
+            background-color: #e8f5e9;
+            color: var(--success);
+            border: 1px solid #c8e6c9;
+        }
+
+        .result-negative {
+            background-color: #ffebee;
+            color: var(--danger);
+            border: 1px solid #ffcdd2;
+        }
+
+        .result-error {
+            background-color: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffe0b2;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>🛍️ Flipkart Review Sentiment Predictor</h2>
+        <p>Enter a product review to analyze whether it is Positive or Negative.</p>
+    </div>
+
+    <form id="reviewForm">
+        <div class="form-group">
+            <label for="reviewText">Product Review:</label>
+            <textarea id="reviewText" placeholder="e.g. Excellent build quality, battery lasts all day and fast delivery!" required></textarea>
+        </div>
+        <button type="submit" id="predictBtn">Predict Sentiment</button>
+    </form>
+
+    <!-- Prediction Result Display -->
+    <div id="resultCard" class="result-card"></div>
+</div>
+
+<script>
+    // Task 3: JavaScript fetch API integration without reloading the page
+    document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); // Prevent page reload
+        
+        const reviewText = document.getElementById('reviewText').value.trim();
+        const resultCard = document.getElementById('resultCard');
+        const predictBtn = document.getElementById('predictBtn');
+
+        if (!reviewText) return;
+
+        predictBtn.disabled = true;
+        predictBtn.innerText = "Analyzing...";
+        resultCard.style.display = "none";
+
+        try {
+            // Asynchronous POST request to Flask API /predict endpoint
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ review: reviewText })
+            });
+
+            const data = await response.json();
+
+            resultCard.style.display = "block";
+            if (response.ok && data.status === 'success') {
+                if (data.sentiment === 'Positive') {
+                    resultCard.className = "result-card result-positive";
+                    resultCard.innerHTML = `😊 Predicted Sentiment: <strong>Positive</strong>`;
+                } else {
+                    resultCard.className = "result-card result-negative";
+                    resultCard.innerHTML = `😞 Predicted Sentiment: <strong>Negative</strong>`;
+                }
+            } else {
+                resultCard.className = "result-card result-error";
+                resultCard.innerHTML = `⚠️ Error: ${data.message || 'Unable to get prediction.'}`;
+            }
+        } catch (err) {
+            resultCard.style.display = "block";
+            resultCard.className = "result-card result-error";
+            resultCard.innerHTML = `⚠️ Network Error: Could not connect to API server.`;
+        } finally {
+            predictBtn.disabled = false;
+            predictBtn.innerText = "Predict Sentiment";
+        }
+    });
+</script>
+
+</body>
+</html>
