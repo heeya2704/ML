@@ -1,0 +1,249 @@
+================================================================================
+MACHINE LEARNING DEPLOYMENT, PERSISTENCE & FLASK API ASSIGNMENT
+================================================================================
+
+================================================================================
+PART 1: DEPLOYMENT CONCEPTS & STRATEGIES
+================================================================================
+
+--------------------------------------------------------------------------------
+TASK 1: Difference Between Training and Deployment of an ML Model
+--------------------------------------------------------------------------------
+Training is the offline process where a machine learning algorithm learns patterns, weights, and relationships from historical datasets. In contrast, deployment is the process of taking the trained model and integrating it into a live production environment (e.g., behind a cloud API) so it can process real-world data and serve predictions to live users. For example, in Zomato's food recommendation system, training happens offline on cloud servers where historical order histories, cuisine ratings, and delivery patterns are processed to build a predictive recommendation model. Deployment occurs when this trained model is hosted on production servers; whenever a user opens the Zomato app, the deployed model takes the user's current location and preferences to instantly generate and serve a personalized list of top restaurant recommendations.
+
+
+--------------------------------------------------------------------------------
+TASK 2: Real-World ML Deployment Examples in Popular Apps
+--------------------------------------------------------------------------------
+1. Spam & Fraudulent Message Detection in WhatsApp
+   - User Interaction: As incoming messages arrive, the deployed ML model scans text patterns and metadata in real time. Users automatically see suspicious messages flagged with safety warnings or moved into a spam box without needing to manually filter unsolicited texts.
+
+2. Personalized Playlists (Discover Weekly / Daily Mix) in Spotify
+   - User Interaction: When a user opens Spotify, they interact with custom-generated playlist carousels based on their past listening habits, top genres, and skipped songs. Users simply tap play to enjoy a dynamically updated stream of tracks curated specifically for them.
+
+3. Real-time Transaction Fraud Detection in Paytm / UPI Apps
+   - User Interaction: During money transfers, an ML model evaluates transaction parameters (amount, recipient pattern, device location, time) in milliseconds. If high risk is detected, the app prompts the user with an extra verification step (e.g., OTP/PIN confirmation or transaction hold) to secure their account.
+
+
+--------------------------------------------------------------------------------
+TASK 3: Online vs. Offline Deployment Choice for a BookMyShow-like App
+--------------------------------------------------------------------------------
+I would choose offline (batch) deployment combined with caching for a movie recommendation feature in a BookMyShow-like app. User movie preferences and general movie catalogs do not change second-by-second, so pre-computing recommendations offline (e.g., every few hours or nightly) and storing them in a fast database like Redis allows serving recommendations with near-zero latency to millions of concurrent users. Retraining deep recommendation models on massive user booking logs is computationally expensive and is best scheduled periodically offline rather than run in real-time. This batch deployment approach ensures low infrastructure costs and high system throughput while keeping recommendations sufficiently fresh whenever users open the app.
+
+
+--------------------------------------------------------------------------------
+TASK 4: Batch Prediction Simulation in Python (Basic String Operations)
+--------------------------------------------------------------------------------
+Python Code:
+def batch_predict_sentiment(reviews):
+    predictions = []
+    for review in reviews:
+        if 'good' in review.lower():
+            sentiment = 'positive'
+        else:
+            sentiment = 'negative'
+        predictions.append((review, sentiment))
+    return predictions
+
+Execution Output:
+No.  | Review                                               | Predicted Sentiment
+-----------------------------------------------------------------------------
+1    | The food was really good and fresh.                  | positive
+2    | Worst service ever, totally disappointed.            | negative
+3    | Ambience was nice and staff was very polite.         | negative
+4    | The pizza tasted good, but it was cold.              | positive
+5    | Extremely slow delivery and cold food.               | negative
+6    | A good place to hang out with friends and family.    | positive
+7    | Not worth the price, quality was poor.               | negative
+8    | Desserts were amazingly good!                        | positive
+9    | Average taste, nothing special.                      | negative
+10   | Great presentation and good value for money.         | positive
+
+
+--------------------------------------------------------------------------------
+TASK 5: Deployment Challenge in a Flipkart-like E-commerce App
+--------------------------------------------------------------------------------
+- Challenge: Prediction Latency Spikes and Server Overload During Peak Traffic Events (e.g., Big Billion Days Sale)
+  Description: During mega sale events, traffic surges dramatically with tens of thousands of concurrent user queries per second for personalized product recommendations and search re-ranking. Running real-time inference on complex deep learning models for every user request can overload servers, causing high response latency or API timeouts and leading to cart abandonment.
+
+- Suggested Solution: Optimized Model Serving & Multilevel Caching
+  Optimize inference models using runtime toolkits like ONNX Runtime or TensorRT to reduce prediction latency, combined with caching popular recommendations in Redis for high-frequency queries. Additionally, hosting the inference service on a microservices cluster with Horizontal Pod Autoscaling (HPA) ensures prediction server instances automatically scale up based on CPU/GPU demand during traffic spikes.
+
+
+================================================================================
+PART 2: MODEL PERSISTENCE, VERSIONING & MANAGEMENT
+================================================================================
+
+--------------------------------------------------------------------------------
+TASK 1: Train DecisionTreeClassifier & Save using Pickle (song_genre_model.pkl)
+--------------------------------------------------------------------------------
+Python Code:
+import pickle
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+
+X_songs = np.array([
+    [120, 80, 85], [140, 90, 60], [128, 95, 90], [70, 20, 30],
+    [118, 75, 80], [145, 85, 55], [130, 92, 88], [65, 15, 25]
+])
+y_genres = np.array(['Pop', 'Rock', 'EDM', 'Classical', 'Pop', 'Rock', 'EDM', 'Classical'])
+
+dt_classifier = DecisionTreeClassifier(random_state=42)
+dt_classifier.fit(X_songs, y_genres)
+
+with open('song_genre_model.pkl', 'wb') as f:
+    pickle.dump(dt_classifier, f)
+
+Result: Saved trained model to file 'song_genre_model.pkl'.
+
+
+--------------------------------------------------------------------------------
+TASK 2: Load song_genre_model.pkl & Predict Genre for New Song
+--------------------------------------------------------------------------------
+Result Output:
+New Song Input: Tempo=126 BPM, Energy=94, Danceability=91
+Predicted Genre: EDM
+
+
+--------------------------------------------------------------------------------
+TASK 3: Train KNeighborsClassifier & Save using Joblib (product_category_model.joblib)
+--------------------------------------------------------------------------------
+Result: Saved trained model to file 'product_category_model.joblib'.
+Verification Prediction for [180g, Rs 2900, Battery=1]: fashion
+
+
+--------------------------------------------------------------------------------
+TASK 4: Model Versioning Directory Structure & Tracking Strategy
+--------------------------------------------------------------------------------
+Directory Structure:
+models/
+├── v1/
+│   └── zomato_rating_model_v1.pkl
+├── v2/
+│   └── zomato_rating_model_v2.pkl
+└── deployed_version.json
+
+Version Tracking Explanation:
+To track which model version is active in production, we use a central deployment configuration file (models/deployed_version.json) or environment variable (DEPLOYED_MODEL_VERSION=v2). When the application server starts or receives a reload signal, it reads the active path from the metadata file and loads models/v2/zomato_rating_model_v2.pkl.
+
+
+--------------------------------------------------------------------------------
+TASK 5: Best Practices for Storing & Managing ML Model Files in BookMyShow
+--------------------------------------------------------------------------------
+1. Centralized Cloud Object Storage & Model Registry (e.g., AWS S3 + MLflow)
+2. Strict Semantic Versioning and Lineage Metadata Tracking
+3. Automated CI/CD Schema Validation and Hot-Swapping
+
+
+================================================================================
+PART 3: FLASK PREDICTION REST API DEPLOYMENT
+================================================================================
+
+--------------------------------------------------------------------------------
+TASK 1: Virtual Environment Setup & Flask app.py Root URL (/)
+--------------------------------------------------------------------------------
+Commands to set up virtual environment and install Flask:
+python -m venv venv
+.\venv\Scripts\pip.exe install flask flask-cors scikit-learn joblib requests
+
+Root URL Route Code (app.py):
+@app.route('/', methods=['GET'])
+def home():
+    return 'Welcome to the Prediction API'
+
+Response for GET http://127.0.0.1:5000/ :
+"Welcome to the Prediction API"
+
+
+--------------------------------------------------------------------------------
+TASK 2: Price Discount Prediction API (/predict-price)
+--------------------------------------------------------------------------------
+Route Code (app.py):
+@app.route('/predict-price', methods=['POST'])
+def predict_price():
+    data = request.get_json()
+    base_price = float(data['base_price'])
+    discount = float(data['discount'])
+    final_price = max(0.0, base_price - discount)
+    return jsonify({
+        "status": "success",
+        "base_price": base_price,
+        "discount": discount,
+        "final_price": final_price
+    }), 200
+
+Sample POST Payload:
+{"base_price": 499.0, "discount": 50.0}
+
+Response JSON:
+{
+  "status": "success",
+  "base_price": 499.0,
+  "discount": 50.0,
+  "final_price": 449.0
+}
+
+
+--------------------------------------------------------------------------------
+TASK 3 & TASK 4: Scikit-learn LinearRegression Delivery Model API (/predict-delivery)
+--------------------------------------------------------------------------------
+Model Training Code (train_delivery_model.py):
+X = [[1.0, 1], [2.5, 2], [3.0, 4], [5.0, 3], [6.0, 5], [8.0, 2], [10.0, 6]]
+y = [12, 18, 24, 30, 38, 40, 55] # Delivery time in minutes
+model = LinearRegression().fit(X, y)
+joblib.dump(model, 'delivery_model.joblib')
+
+Route Code (app.py):
+@app.route('/predict-delivery', methods=['POST'])
+def predict_delivery():
+    data = request.get_json()
+    distance_km = float(data['distance_km'])
+    order_size = float(data['order_size'])
+    
+    # Predict using loaded model
+    prediction = delivery_model.predict([[distance_km, order_size]])[0]
+    estimated_minutes = max(5.0, round(float(prediction), 1))
+    
+    friendly_message = f"🛵 Hungry? Hot & fresh food is on its way! Estimated delivery time is approximately {estimated_minutes} minutes. Bon Appétit!"
+    
+    return jsonify({
+        "status": "success",
+        "distance_km": distance_km,
+        "order_size": int(order_size),
+        "estimated_delivery_time_minutes": estimated_minutes,
+        "message": friendly_message
+    }), 200
+
+Sample POST Payload:
+{"distance_km": 4.5, "order_size": 3}
+
+Response JSON:
+{
+  "status": "success",
+  "distance_km": 4.5,
+  "order_size": 3,
+  "estimated_delivery_time_minutes": 28.3,
+  "message": "🛵 Hungry? Hot & fresh food is on its way! Estimated delivery time is approximately 28.3 minutes. Bon Appétit!"
+}
+
+
+--------------------------------------------------------------------------------
+TASK 5: Verification & Testing using Postman / cURL / PowerShell
+--------------------------------------------------------------------------------
+PowerShell Test Command:
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/predict-delivery" -Method POST -ContentType "application/json" -Body '{"distance_km": 4.5, "order_size": 3}'
+
+cURL Command:
+curl -X POST http://127.0.0.1:5000/predict-delivery -H "Content-Type: application/json" -d "{\"distance_km\": 4.5, \"order_size\": 3}"
+
+Postman Setup:
+1. Method: POST
+2. URL: http://127.0.0.1:5000/predict-delivery
+3. Headers: Content-Type: application/json
+4. Body (raw JSON):
+   {
+     "distance_km": 4.5,
+     "order_size": 3
+   }
+5. Verification Status: HTTP 200 OK with estimated delivery time and friendly message.
+================================================================================
