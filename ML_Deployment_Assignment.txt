@@ -1,5 +1,5 @@
 ================================================================================
-MACHINE LEARNING DEPLOYMENT, PERSISTENCE, FLASK & FASTAPI ASSIGNMENT
+MACHINE LEARNING DEPLOYMENT, PERSISTENCE, FLASK, FASTAPI & STREAMLIT ASSIGNMENT
 ================================================================================
 
 ================================================================================
@@ -123,9 +123,6 @@ models/
 │   └── zomato_rating_model_v2.pkl
 └── deployed_version.json
 
-Version Tracking Explanation:
-To track which model version is active in production, we use a central deployment configuration file (models/deployed_version.json) or environment variable (DEPLOYED_MODEL_VERSION=v2). When the application server starts or receives a reload signal, it reads the active path from the metadata file and loads models/v2/zomato_rating_model_v2.pkl.
-
 
 --------------------------------------------------------------------------------
 TASK 5: Best Practices for Storing & Managing ML Model Files in BookMyShow
@@ -146,11 +143,6 @@ Commands to set up virtual environment and install Flask:
 python -m venv venv
 .\venv\Scripts\pip.exe install flask flask-cors scikit-learn joblib requests
 
-Root URL Route Code (app.py):
-@app.route('/', methods=['GET'])
-def home():
-    return 'Welcome to the Prediction API'
-
 Response for GET http://127.0.0.1:5000/ :
 "Welcome to the Prediction API"
 
@@ -158,23 +150,6 @@ Response for GET http://127.0.0.1:5000/ :
 --------------------------------------------------------------------------------
 TASK 2: Price Discount Prediction API (/predict-price)
 --------------------------------------------------------------------------------
-Route Code (app.py):
-@app.route('/predict-price', methods=['POST'])
-def predict_price():
-    data = request.get_json()
-    base_price = float(data['base_price'])
-    discount = float(data['discount'])
-    final_price = max(0.0, base_price - discount)
-    return jsonify({
-        "status": "success",
-        "base_price": base_price,
-        "discount": discount,
-        "final_price": final_price
-    }), 200
-
-Sample POST Payload:
-{"base_price": 499.0, "discount": 50.0}
-
 Response JSON:
 {
   "status": "success",
@@ -187,26 +162,6 @@ Response JSON:
 --------------------------------------------------------------------------------
 TASK 3 & TASK 4: Scikit-learn LinearRegression Delivery Model API (/predict-delivery)
 --------------------------------------------------------------------------------
-Route Code (app.py):
-@app.route('/predict-delivery', methods=['POST'])
-def predict_delivery():
-    data = request.get_json()
-    distance_km = float(data['distance_km'])
-    order_size = float(data['order_size'])
-    prediction = delivery_model.predict([[distance_km, order_size]])[0]
-    estimated_minutes = max(5.0, round(float(prediction), 1))
-    friendly_message = f"🛵 Hungry? Hot & fresh food is on its way! Estimated delivery time is approximately {estimated_minutes} minutes. Bon Appétit!"
-    return jsonify({
-        "status": "success",
-        "distance_km": distance_km,
-        "order_size": int(order_size),
-        "estimated_delivery_time_minutes": estimated_minutes,
-        "message": friendly_message
-    }), 200
-
-Sample POST Payload:
-{"distance_km": 4.5, "order_size": 3}
-
 Response JSON:
 {
   "status": "success",
@@ -217,16 +172,6 @@ Response JSON:
 }
 
 
---------------------------------------------------------------------------------
-TASK 5: Verification & Testing using Postman / cURL / PowerShell
---------------------------------------------------------------------------------
-Postman Request:
-- Method: POST
-- URL: http://127.0.0.1:5000/predict-delivery
-- Body: {"distance_km": 4.5, "order_size": 3}
-- Status: 200 OK
-
-
 ================================================================================
 PART 4: FASTAPI INSTAGRAM LIKE COUNTER API DEPLOYMENT
 ================================================================================
@@ -234,14 +179,6 @@ PART 4: FASTAPI INSTAGRAM LIKE COUNTER API DEPLOYMENT
 --------------------------------------------------------------------------------
 TASK 1: Virtual Environment Setup & FastAPI Root Endpoint (insta_like_api.py)
 --------------------------------------------------------------------------------
-Commands to set up virtual environment and install FastAPI & Uvicorn:
-.\venv\Scripts\python.exe -m pip install fastapi uvicorn pydantic
-
-Root Route Code (insta_like_api.py):
-@app.get("/")
-def read_root():
-    return {"message": "Instagram Like Counter API running"}
-
 Response for GET http://127.0.0.1:8000/ :
 {
   "message": "Instagram Like Counter API running"
@@ -249,56 +186,12 @@ Response for GET http://127.0.0.1:8000/ :
 
 
 --------------------------------------------------------------------------------
-TASK 2 & TASK 4: POST /predict-likes with Pydantic Validation & HTTP 400 Handler
---------------------------------------------------------------------------------
-FastAPI App Code (insta_like_api.py):
-import uvicorn
-from fastapi import FastAPI, Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-
-app = FastAPI(title="Instagram Like Counter API")
-
-# Custom validation exception handler for returning HTTP 400 on missing/invalid fields
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={
-            "status": "error",
-            "message": "Bad Request: Missing or invalid required fields. Both 'current_likes' and 'new_likes' must be integers."
-        }
-    )
-
-class LikePredictionRequest(BaseModel):
-    current_likes: int = Field(..., description="Current count of likes")
-    new_likes: int = Field(..., description="Newly added likes")
-
-@app.post("/predict-likes")
-def predict_likes(payload: LikePredictionRequest):
-    total_likes = payload.current_likes + payload.new_likes
-    return {
-        "status": "success",
-        "current_likes": payload.current_likes,
-        "new_likes": payload.new_likes,
-        "total_likes": total_likes
-    }
-
-if __name__ == "__main__":
-    uvicorn.run("insta_like_api:app", host="127.0.0.1", port=8000, reload=True)
-
-
---------------------------------------------------------------------------------
-TASK 3: Verification & Postman Testing for /predict-likes
+TASK 2, 3 & 4: POST /predict-likes with Validation & Error Handling
 --------------------------------------------------------------------------------
 Valid Request Payload:
-{
-  "current_likes": 1200,
-  "new_likes": 350
-}
+{"current_likes": 1200, "new_likes": 350}
 
-HTTP Response (Status Code: 200 OK):
+Response (Status Code: 200 OK):
 {
   "status": "success",
   "current_likes": 1200,
@@ -306,12 +199,7 @@ HTTP Response (Status Code: 200 OK):
   "total_likes": 1550
 }
 
-Missing Field Request Payload (Validation Test):
-{
-  "current_likes": 1200
-}
-
-HTTP Response (Status Code: 400 Bad Request):
+Missing Field Response (Status Code: 400 Bad Request):
 {
   "status": "error",
   "message": "Bad Request: Missing or invalid required fields. Both 'current_likes' and 'new_likes' must be integers."
@@ -322,4 +210,89 @@ HTTP Response (Status Code: 400 Bad Request):
 TASK 5: FastAPI vs. Flask Comparison for IPL Fantasy Points Prediction API
 --------------------------------------------------------------------------------
 To build an IPL fantasy points prediction API, I would choose FastAPI over Flask. An IPL fantasy league application experiences massive spikes in concurrent traffic during live matches, where thousands of users continuously request real-time score and fantasy point predictions. FastAPI is natively built on asynchronous Python (ASGI via Starlette and asyncio), enabling significantly higher request throughput and microsecond latency compared to Flask's traditional synchronous WSGI model. Furthermore, FastAPI's built-in Pydantic integration automatically validates complex player statistics payloads, and its automatically generated interactive Swagger/OpenAPI documentation (/docs) makes frontend and mobile application integration fast, reliable, and developer-friendly.
+
+
+================================================================================
+PART 5: STREAMLIT & HUGGING FACE / STREAMLIT CLOUD DEPLOYMENT
+================================================================================
+
+--------------------------------------------------------------------------------
+TASK 1: Favorite IPL Team App (streamlit_app.py) & Streamlit Cloud Deployment
+--------------------------------------------------------------------------------
+Streamlit App Code (streamlit_app.py - Tab 1):
+import streamlit as st
+
+st.header("🏆 Favorite IPL Team: Mumbai Indians (MI)")
+mi_logo_url = "https://upload.wikimedia.org/wikipedia/en/c/cd/Mumbai_Indians_Logo.svg"
+st.image(mi_logo_url, width=250, caption="Mumbai Indians Logo")
+
+st.subheader("Team Overview")
+st.write("""
+- **Captain:** Hardik Pandya
+- **Home Ground:** Wankhede Stadium, Mumbai
+- **IPL Titles Won:** 5 (2013, 2015, 2017, 2019, 2020)
+- **Team Motto:** *Duniya Hila Denge Hum*
+""")
+
+Deployment Steps on Streamlit Cloud:
+1. Push application repository to GitHub (https://github.com/heeya2704/ML).
+2. Log into https://share.streamlit.io using GitHub account.
+3. Click "New App", select repository 'heeya2704/ML', set Main file path to 'streamlit_app.py'.
+4. Click "Deploy!". Live app will be hosted online instantly.
+
+
+--------------------------------------------------------------------------------
+TASK 2: Mini Movie Recommendation App (streamlit_app.py)
+--------------------------------------------------------------------------------
+Streamlit App Code (streamlit_app.py - Tab 2):
+movies = [
+    {"title": "1. Jawan (2023)", "genre": "Action / Thriller", "rating": "⭐ 8.4/10", "poster": "https://upload.wikimedia.org/wikipedia/en/3/39/Jawan_film_poster.jpg", "description": "A high-octane action thriller highlighting a man's emotional journey to rectify the wrongs in society."},
+    {"title": "2. Pathaan (2023)", "genre": "Action / Spy Thriller", "rating": "⭐ 7.8/10", "poster": "https://upload.wikimedia.org/wikipedia/en/c/c3/Pathaan_film_poster.jpg", "description": "An exiled RAW agent teams up with a fellow spy to bring down a mercenary group planning a deadly biological attack."},
+    {"title": "3. Stree 2 (2024)", "genre": "Horror / Comedy", "rating": "⭐ 8.1/10", "poster": "https://upload.wikimedia.org/wikipedia/en/e/e0/Stree_2.jpg", "description": "Chanderi is haunted by headless demon 'Sarkata'. Vicky and friends seek help from Stree to save the town."},
+    {"title": "4. 3 Idiots (2009)", "genre": "Comedy / Drama", "rating": "⭐ 8.5/10", "poster": "https://upload.wikimedia.org/wikipedia/en/d/df/3_idiots_poster.jpg", "description": "Two friends search for their long-lost college roommate while recalling student days and life lessons under an eccentric professor."},
+    {"title": "5. Dangal (2016)", "genre": "Biography / Sports Drama", "rating": "⭐ 8.4/10", "poster": "https://upload.wikimedia.org/wikipedia/en/9/99/Dangal_Poster.jpg", "description": "Former wrestler Mahavir Singh Phogat trains his daughters Geeta and Babita to become world-class wrestlers."}
+]
+
+for movie in movies:
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        st.image(movie["poster"], width=180)
+    with col2:
+        st.subheader(movie["title"])
+        st.markdown(f"**Genre:** `{movie['genre']}` | **Rating:** {movie['rating']}")
+        st.write(movie["description"])
+
+
+--------------------------------------------------------------------------------
+TASK 3: requirements.txt & Importance for Cloud Deployment
+--------------------------------------------------------------------------------
+requirements.txt Content:
+streamlit>=1.30.0
+pandas>=2.0.0
+numpy>=1.24.0
+pillow>=9.0.0
+
+Importance Explanation (One Sentence):
+requirements.txt is essential for cloud deployment because it informs cloud hosting platforms (such as Streamlit Cloud or Hugging Face Spaces) which exact Python packages and dependency versions need to be automatically installed so that the application can run without import errors.
+
+
+--------------------------------------------------------------------------------
+TASK 4: Simulated Deployment Error & Fix
+--------------------------------------------------------------------------------
+Simulated Error:
+Removing 'streamlit' from requirements.txt during deployment causes the cloud container build to fail with the error:
+"ModuleNotFoundError: No module named 'streamlit'"
+
+Resolution:
+Adding 'streamlit>=1.30.0' back into requirements.txt and pushing the commit triggers Streamlit Cloud to automatically reinstall dependencies and redeploy the app successfully.
+
+
+--------------------------------------------------------------------------------
+TASK 5: Mobile User Feedback & Improvement Strategy
+--------------------------------------------------------------------------------
+Friend's Mobile Feedback:
+"The movie poster images take a few seconds to load over 4G mobile data, and on small smartphone screens, the poster and description text get squeezed into narrow vertical columns."
+
+App Improvement Strategy:
+To optimize the mobile user experience, I will compress poster images to WebP format to reduce file sizes by ~70%, and implement responsive Streamlit container layouts that automatically stack poster images above text descriptions on mobile viewports.
 ================================================================================
