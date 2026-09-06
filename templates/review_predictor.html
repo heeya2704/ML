@@ -151,7 +151,6 @@
 </div>
 
 <script>
-    // Task 3: JavaScript fetch API integration without reloading the page
     document.getElementById('reviewForm').addEventListener('submit', async function(e) {
         e.preventDefault(); // Prevent page reload
         
@@ -165,9 +164,11 @@
         predictBtn.innerText = "Analyzing...";
         resultCard.style.display = "none";
 
+        // Smart API endpoint URL: handles both http://127.0.0.1:5002/ and file:/// HTML file opening
+        const apiUrl = window.location.protocol.startsWith('http') ? '/predict' : 'http://127.0.0.1:5002/predict';
+
         try {
-            // Asynchronous POST request to Flask API /predict endpoint
-            const response = await fetch('/predict', {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -193,7 +194,7 @@
         } catch (err) {
             resultCard.style.display = "block";
             resultCard.className = "result-card result-error";
-            resultCard.innerHTML = `⚠️ Network Error: Could not connect to API server.`;
+            resultCard.innerHTML = `⚠️ Network Error: Could not connect to API server. Make sure predict_review.py is running.`;
         } finally {
             predictBtn.disabled = false;
             predictBtn.innerText = "Predict Sentiment";
