@@ -1,5 +1,5 @@
 ================================================================================
-MACHINE LEARNING DEPLOYMENT, PERSISTENCE & FLASK API ASSIGNMENT
+MACHINE LEARNING DEPLOYMENT, PERSISTENCE, FLASK & FASTAPI ASSIGNMENT
 ================================================================================
 
 ================================================================================
@@ -187,25 +187,15 @@ Response JSON:
 --------------------------------------------------------------------------------
 TASK 3 & TASK 4: Scikit-learn LinearRegression Delivery Model API (/predict-delivery)
 --------------------------------------------------------------------------------
-Model Training Code (train_delivery_model.py):
-X = [[1.0, 1], [2.5, 2], [3.0, 4], [5.0, 3], [6.0, 5], [8.0, 2], [10.0, 6]]
-y = [12, 18, 24, 30, 38, 40, 55] # Delivery time in minutes
-model = LinearRegression().fit(X, y)
-joblib.dump(model, 'delivery_model.joblib')
-
 Route Code (app.py):
 @app.route('/predict-delivery', methods=['POST'])
 def predict_delivery():
     data = request.get_json()
     distance_km = float(data['distance_km'])
     order_size = float(data['order_size'])
-    
-    # Predict using loaded model
     prediction = delivery_model.predict([[distance_km, order_size]])[0]
     estimated_minutes = max(5.0, round(float(prediction), 1))
-    
     friendly_message = f"🛵 Hungry? Hot & fresh food is on its way! Estimated delivery time is approximately {estimated_minutes} minutes. Bon Appétit!"
-    
     return jsonify({
         "status": "success",
         "distance_km": distance_km,
@@ -230,20 +220,106 @@ Response JSON:
 --------------------------------------------------------------------------------
 TASK 5: Verification & Testing using Postman / cURL / PowerShell
 --------------------------------------------------------------------------------
-PowerShell Test Command:
-Invoke-RestMethod -Uri "http://127.0.0.1:5000/predict-delivery" -Method POST -ContentType "application/json" -Body '{"distance_km": 4.5, "order_size": 3}'
+Postman Request:
+- Method: POST
+- URL: http://127.0.0.1:5000/predict-delivery
+- Body: {"distance_km": 4.5, "order_size": 3}
+- Status: 200 OK
 
-cURL Command:
-curl -X POST http://127.0.0.1:5000/predict-delivery -H "Content-Type: application/json" -d "{\"distance_km\": 4.5, \"order_size\": 3}"
 
-Postman Setup:
-1. Method: POST
-2. URL: http://127.0.0.1:5000/predict-delivery
-3. Headers: Content-Type: application/json
-4. Body (raw JSON):
-   {
-     "distance_km": 4.5,
-     "order_size": 3
-   }
-5. Verification Status: HTTP 200 OK with estimated delivery time and friendly message.
+================================================================================
+PART 4: FASTAPI INSTAGRAM LIKE COUNTER API DEPLOYMENT
+================================================================================
+
+--------------------------------------------------------------------------------
+TASK 1: Virtual Environment Setup & FastAPI Root Endpoint (insta_like_api.py)
+--------------------------------------------------------------------------------
+Commands to set up virtual environment and install FastAPI & Uvicorn:
+.\venv\Scripts\python.exe -m pip install fastapi uvicorn pydantic
+
+Root Route Code (insta_like_api.py):
+@app.get("/")
+def read_root():
+    return {"message": "Instagram Like Counter API running"}
+
+Response for GET http://127.0.0.1:8000/ :
+{
+  "message": "Instagram Like Counter API running"
+}
+
+
+--------------------------------------------------------------------------------
+TASK 2 & TASK 4: POST /predict-likes with Pydantic Validation & HTTP 400 Handler
+--------------------------------------------------------------------------------
+FastAPI App Code (insta_like_api.py):
+import uvicorn
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+
+app = FastAPI(title="Instagram Like Counter API")
+
+# Custom validation exception handler for returning HTTP 400 on missing/invalid fields
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "status": "error",
+            "message": "Bad Request: Missing or invalid required fields. Both 'current_likes' and 'new_likes' must be integers."
+        }
+    )
+
+class LikePredictionRequest(BaseModel):
+    current_likes: int = Field(..., description="Current count of likes")
+    new_likes: int = Field(..., description="Newly added likes")
+
+@app.post("/predict-likes")
+def predict_likes(payload: LikePredictionRequest):
+    total_likes = payload.current_likes + payload.new_likes
+    return {
+        "status": "success",
+        "current_likes": payload.current_likes,
+        "new_likes": payload.new_likes,
+        "total_likes": total_likes
+    }
+
+if __name__ == "__main__":
+    uvicorn.run("insta_like_api:app", host="127.0.0.1", port=8000, reload=True)
+
+
+--------------------------------------------------------------------------------
+TASK 3: Verification & Postman Testing for /predict-likes
+--------------------------------------------------------------------------------
+Valid Request Payload:
+{
+  "current_likes": 1200,
+  "new_likes": 350
+}
+
+HTTP Response (Status Code: 200 OK):
+{
+  "status": "success",
+  "current_likes": 1200,
+  "new_likes": 350,
+  "total_likes": 1550
+}
+
+Missing Field Request Payload (Validation Test):
+{
+  "current_likes": 1200
+}
+
+HTTP Response (Status Code: 400 Bad Request):
+{
+  "status": "error",
+  "message": "Bad Request: Missing or invalid required fields. Both 'current_likes' and 'new_likes' must be integers."
+}
+
+
+--------------------------------------------------------------------------------
+TASK 5: FastAPI vs. Flask Comparison for IPL Fantasy Points Prediction API
+--------------------------------------------------------------------------------
+To build an IPL fantasy points prediction API, I would choose FastAPI over Flask. An IPL fantasy league application experiences massive spikes in concurrent traffic during live matches, where thousands of users continuously request real-time score and fantasy point predictions. FastAPI is natively built on asynchronous Python (ASGI via Starlette and asyncio), enabling significantly higher request throughput and microsecond latency compared to Flask's traditional synchronous WSGI model. Furthermore, FastAPI's built-in Pydantic integration automatically validates complex player statistics payloads, and its automatically generated interactive Swagger/OpenAPI documentation (/docs) makes frontend and mobile application integration fast, reliable, and developer-friendly.
 ================================================================================
